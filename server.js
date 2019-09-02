@@ -6,6 +6,9 @@ const cors = require('cors')
 const messageRoutes = require('./app/routes/message_routes')
 const userRoutes = require('./app/routes/user_routes')
 
+// require message api file
+// const { index } = require('./lib/message_api')
+
 const errorHandler = require('./lib/error_handler')
 
 const db = require('./config/db')
@@ -42,8 +45,15 @@ app.use(userRoutes)
 
 app.use(errorHandler)
 
-app.listen(port, () => {
-  console.log('listening on port ' + port)
+const server = app.listen(port, () => {
+  console.log('connected to port: ' + port)
+})
+
+const io = require('socket.io')(server)
+app.set('socketio', io)
+
+io.on('connect', socket => {
+  socket.emit('id', socket.id)
 })
 
 module.exports = app
