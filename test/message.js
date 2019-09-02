@@ -1,6 +1,6 @@
 process.env.TESTENV = true
 
-let Example = require('../app/models/example.js')
+let Message = require('../app/models/message.js')
 let User = require('../app/models/user')
 
 const crypto = require('crypto')
@@ -14,18 +14,17 @@ chai.use(chaiHttp)
 
 const token = crypto.randomBytes(16).toString('hex')
 let userId
-let exampleId
+let messageId
 
-describe('Examples', () => {
-  const exampleParams = {
-    title: '13 JavaScript tricks WDI instructors don\'t want you to know',
-    text: 'You won\'believe number 8!'
+describe('Messages', () => {
+  const messageParams = {
+    message: '13 JavaScript tricks WDI instructors don\'t want you to know'
   }
 
   before(done => {
-    Example.remove({})
+    Message.remove({})
       .then(() => User.create({
-        email: 'caleb',
+        email: 'jen',
         hashedPassword: '12345',
         token
       }))
@@ -33,57 +32,57 @@ describe('Examples', () => {
         userId = user._id
         return user
       })
-      .then(() => Example.create(Object.assign(exampleParams, {owner: userId})))
+      .then(() => Message.create(Object.assign(messageParams, {owner: userId})))
       .then(record => {
-        exampleId = record._id
+        messageId = record._id
         done()
       })
       .catch(console.error)
   })
 
-  describe('GET /examples', () => {
-    it('should get all the examples', done => {
-      chai.request(server)
-        .get('/examples')
+  describe('GET /messages', () => {
+    it('should get all the messages', done => {
+      chai.request(server.app)
+        .get('/messages')
         .set('Authorization', `Token token=${token}`)
         .end((e, res) => {
           res.should.have.status(200)
-          res.body.examples.should.be.a('array')
-          res.body.examples.length.should.be.eql(1)
+          res.body.messages.should.be.a('array')
+          res.body.messages.length.should.be.eql(1)
           done()
         })
     })
   })
 
-  describe('GET /examples/:id', () => {
-    it('should get one example', done => {
-      chai.request(server)
-        .get('/examples/' + exampleId)
+  describe('GET /messages/:id', () => {
+    it('should get one message', done => {
+      chai.request(server.app)
+        .get('/messages/' + messageId)
         .set('Authorization', `Token token=${token}`)
         .end((e, res) => {
           res.should.have.status(200)
-          res.body.example.should.be.a('object')
-          res.body.example.title.should.eql(exampleParams.title)
+          res.body.message.should.be.a('object')
+          res.body.message.title.should.eql(messageParams.title)
           done()
         })
     })
   })
 
-  describe('DELETE /examples/:id', () => {
-    let exampleId
+  describe('DELETE /messages/:id', () => {
+    let messageId
 
     before(done => {
-      Example.create(Object.assign(exampleParams, { owner: userId }))
+      Message.create(Object.assign(messageParams, { owner: userId }))
         .then(record => {
-          exampleId = record._id
+          messageId = record._id
           done()
         })
         .catch(console.error)
     })
 
     it('must be owned by the user', done => {
-      chai.request(server)
-        .delete('/examples/' + exampleId)
+      chai.request(server.app)
+        .delete('/messages/' + messageId)
         .set('Authorization', `Bearer notarealtoken`)
         .end((e, res) => {
           res.should.have.status(401)
@@ -92,8 +91,8 @@ describe('Examples', () => {
     })
 
     it('should be succesful if you own the resource', done => {
-      chai.request(server)
-        .delete('/examples/' + exampleId)
+      chai.request(server.app)
+        .delete('/messages/' + messageId)
         .set('Authorization', `Bearer ${token}`)
         .end((e, res) => {
           res.should.have.status(204)
@@ -102,8 +101,8 @@ describe('Examples', () => {
     })
 
     it('should return 404 if the resource doesn\'t exist', done => {
-      chai.request(server)
-        .delete('/examples/' + exampleId)
+      chai.request(server.app)
+        .delete('/messages/' + messageId)
         .set('Authorization', `Bearer ${token}`)
         .end((e, res) => {
           res.should.have.status(404)
@@ -112,16 +111,15 @@ describe('Examples', () => {
     })
   })
 
-  describe('POST /examples', () => {
-    it('should not POST an example without a title', done => {
-      let noTitle = {
-        text: 'Untitled',
-        owner: 'fakedID'
+  describe('POST /messages', () => {
+    it('should not POST an message without a title', done => {
+      let untitled = {
+        message: 'Untitled'
       }
-      chai.request(server)
-        .post('/examples')
+      chai.request(server.app)
+        .post('/messages')
         .set('Authorization', `Bearer ${token}`)
-        .send({ example: noTitle })
+        .send({ message: untitled })
         .end((e, res) => {
           res.should.have.status(422)
           res.should.be.a('object')
@@ -129,15 +127,14 @@ describe('Examples', () => {
         })
     })
 
-    it('should not POST an example without text', done => {
-      let noText = {
-        title: 'Not a very good example, is it?',
+    it('should not POST an message without message', done => {
+      let noMessage = {
         owner: 'fakeID'
       }
-      chai.request(server)
-        .post('/examples')
+      chai.request(server.app)
+        .post('/messages')
         .set('Authorization', `Bearer ${token}`)
-        .send({ example: noText })
+        .send({ message: noMessage })
         .end((e, res) => {
           res.should.have.status(422)
           res.should.be.a('object')
@@ -146,53 +143,50 @@ describe('Examples', () => {
     })
 
     it('should not allow a POST from an unauthenticated user', done => {
-      chai.request(server)
-        .post('/examples')
-        .send({ example: exampleParams })
+      chai.request(server.app)
+        .post('/messages')
+        .send({ message: messageParams })
         .end((e, res) => {
           res.should.have.status(401)
           done()
         })
     })
 
-    it('should POST an example with the correct params', done => {
-      let validExample = {
-        title: 'I ran a shell command. You won\'t believe what happened next!',
-        text: 'it was rm -rf / --no-preserve-root'
+    it('should POST an message with the correct params', done => {
+      let validMessage = {
+        message: 'Advice to devs: Don\'t run rm -rf / --no-preserve-root'
       }
-      chai.request(server)
-        .post('/examples')
+      chai.request(server.app)
+        .post('/messages')
         .set('Authorization', `Bearer ${token}`)
-        .send({ example: validExample })
+        .send({ message: validMessage })
         .end((e, res) => {
           res.should.have.status(201)
           res.body.should.be.a('object')
-          res.body.should.have.property('example')
-          res.body.example.should.have.property('title')
-          res.body.example.title.should.eql(validExample.title)
+          res.body.should.have.property('message')
+          res.body.message.message.should.eql(validMessage.message)
           done()
         })
     })
   })
 
-  describe('PATCH /examples/:id', () => {
-    let exampleId
+  describe('PATCH /messages/:id', () => {
+    let messageId
 
     const fields = {
-      title: 'Find out which HTTP status code is your spirit animal',
-      text: 'Take this 4 question quiz to find out!'
+      message: 'Take this 4 question quiz to find out!'
     }
 
     before(async function () {
-      const record = await Example.create(Object.assign(exampleParams, { owner: userId }))
-      exampleId = record._id
+      const record = await Message.create(Object.assign(messageParams, { owner: userId }))
+      messageId = record._id
     })
 
     it('must be owned by the user', done => {
-      chai.request(server)
-        .patch('/examples/' + exampleId)
+      chai.request(server.app)
+        .patch('/messages/' + messageId)
         .set('Authorization', `Bearer notarealtoken`)
-        .send({ example: fields })
+        .send({ message: fields })
         .end((e, res) => {
           res.should.have.status(401)
           done()
@@ -200,44 +194,41 @@ describe('Examples', () => {
     })
 
     it('should update fields when PATCHed', done => {
-      chai.request(server)
-        .patch(`/examples/${exampleId}`)
+      chai.request(server.app)
+        .patch(`/messages/${messageId}`)
         .set('Authorization', `Bearer ${token}`)
-        .send({ example: fields })
+        .send({ message: fields })
         .end((e, res) => {
-          res.should.have.status(204)
+          res.should.have.status(205)
           done()
         })
     })
 
     it('shows the updated resource when fetched with GET', done => {
-      chai.request(server)
-        .get(`/examples/${exampleId}`)
+      chai.request(server.app)
+        .get(`/messages/${messageId}`)
         .set('Authorization', `Bearer ${token}`)
         .end((e, res) => {
           res.should.have.status(200)
           res.body.should.be.a('object')
-          res.body.example.title.should.eql(fields.title)
-          res.body.example.text.should.eql(fields.text)
+          res.body.message.message.should.eql(fields.message)
           done()
         })
     })
 
     it('doesn\'t overwrite fields with empty strings', done => {
-      chai.request(server)
-        .patch(`/examples/${exampleId}`)
+      chai.request(server.app)
+        .patch(`/messages/${messageId}`)
         .set('Authorization', `Bearer ${token}`)
-        .send({ example: { text: '' } })
+        .send({ message: { message: '' } })
         .then(() => {
-          chai.request(server)
-            .get(`/examples/${exampleId}`)
+          chai.request(server.app)
+            .get(`/messages/${messageId}`)
             .set('Authorization', `Bearer ${token}`)
             .end((e, res) => {
               res.should.have.status(200)
               res.body.should.be.a('object')
-              console.log(res.body.example.text)
-              res.body.example.title.should.eql(fields.title)
-              res.body.example.text.should.eql(fields.text)
+              res.body.message.message.should.eql(fields.message)
               done()
             })
         })
