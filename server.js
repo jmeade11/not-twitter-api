@@ -1,13 +1,9 @@
 const express = require('express')
-const bodyParser = require('body-parser')
 const mongoose = require('mongoose')
 const cors = require('cors')
 
 const messageRoutes = require('./app/routes/message_routes')
 const userRoutes = require('./app/routes/user_routes')
-
-// require message api file
-// const { index } = require('./lib/message_api')
 
 const errorHandler = require('./lib/error_handler')
 
@@ -16,9 +12,8 @@ const db = require('./config/db')
 const auth = require('./lib/auth')
 
 mongoose.Promise = global.Promise
-mongoose.connect(db, {
-  useMongoClient: true
-})
+
+mongoose.connect(db, { useMongoClient: true })
 
 const app = express()
 
@@ -36,9 +31,8 @@ app.use((req, res, next) => {
 
 app.use(auth)
 
-app.use(bodyParser.json())
-
-app.use(bodyParser.urlencoded({ extended: true }))
+app.use(express.json())
+app.use(express.urlencoded({extended: true}))
 
 app.use(messageRoutes)
 app.use(userRoutes)
@@ -50,6 +44,7 @@ const server = app.listen(port, () => {
 })
 
 const io = require('socket.io')(server)
+
 app.set('socketio', io)
 
 io.on('connect', socket => {
